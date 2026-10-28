@@ -1,0 +1,11 @@
+# Bundle patch layer —— 人格设定插件
+#
+# 这一层只做一件事：把本包的宿主半（index.js，一个普通 Cordis 插件）插入 profile
+# 的插件表。`package.json` 的 `dsh.client` 声明让 Web 端加载 ./client 浏览器半
+# （设置页 tab）。
+#
+# 提示词注入不在这里做：人格文本走宿主半的 ctx.systemPrompt.section()，
+# 也就是官方 API，不 patch 任何 @deepseek-ai 包。
+- insert:
+    - id: dsh-luminyx
+      name: dsh-luminyx

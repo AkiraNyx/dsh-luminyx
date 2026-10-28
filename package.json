@@ -1,0 +1,50 @@
+{
+  "name": "dsh-luminyx",
+  "version": "0.1.0",
+  "description": "Luminyx（夜光）· 通用人格设定：人格包（Persona Pack）加载、系统提示注入、常驻事实与长期记忆、档案检索、设置页。",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/",
+    "packs/",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/run.mjs && node test/client-load.mjs",
+    "test:host": "node test/run.mjs",
+    "test:client": "node test/client-load.mjs",
+    "check": "node --check index.js && node --check client.js"
+  },
+  "dsh": {
+    "id": "dsh-luminyx",
+    "name": "Luminyx 人格设定",
+    "version": "0.1.0",
+    "repo": "AkiraNyx/dsh-luminyx",
+    "permissions": "读写本机 DSH 数据目录下 persona/ 的人格包与记忆文件；注册系统提示段（persona:main / persona:facts）；注册 persona_* 工具；提供 /persona HTTP 接口与设置页",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh": {
+      "optional": true
+    }
+  },
+  "license": "MIT"
+}

@@ -8,25 +8,27 @@
 
 ## 亮点
 
-- **注入走官方 API，不碰宿主源码**：`ctx.systemPrompt.section()` 注册 `persona:main`（order 9100）与 `persona:facts`（9120），落在工具清单（5000）之后、结构化输出（9900）之前。段文本是函数，每轮组装重新求值，所以切包、改文件、开关注入都不需要重启或重新注册。
-- **落盘是纯文本**：`persona.md` / `facts.md` 是 markdown，`lore.jsonl` / `memory.jsonl` 一行一条 JSON。手改、diff、整份复制给别的包，都不用经过本插件。
-- **结构化只活在视图里**：设置页把 `## ` 切成卡片编辑，保存时序列化回同样的 markdown；手改文件回到设置页会重新解析成块。文件里没有一行 JSON 是为了插件而存在的。
-- **六个工具、十四个接口，同一份数据**：模型侧 `persona_*`，界面侧 `/persona/api/*`，读写同一个 `~/.dsh/persona/`。
-- **109 项自测，零依赖**：`git clone` 后直接 `npm test`，不需要先 `npm install`（`dependencies` 为空）。宿主 87 项 + 浏览器 22 项。
+- **不碰宿主源码**：走 `ctx.systemPrompt.section()` 官方扩展点，两段插在工具清单（order 5000）之后、结构化输出（9900）之前。
+- **落盘是纯文本，视图不是数据源**：卡片编辑器保存时序列化回同样的 markdown，手改文件再打开会重新解析成块。
+- **改文件立刻生效**：注入段是函数，每轮重新求值。切包、开关注入都不用重启。
+- **一份数据，两个入口**：模型侧 `persona_*` 工具，界面侧 `/persona/api/*`，读写同一个 `~/.dsh/persona/`。
+- **零运行时依赖**：`npm test` 109 项，`git clone` 后直接跑，不用先装。
 
-## 快速开始
+## 安装
 
 环境：DSH `>=0.2.0-rc.1 <0.3.0-0`（`peerDependencies` 声明的范围）；Node 与 DSH 同一运行时，本仓库在 Node 24.20.0 上跑通全部测试。命令按 bash / Git Bash 写。
 
-**没有发布到 npm**，只能从源码装。DSH 的插件挂在 profile 上，三步：
+**没有发布到 npm**，只能从源码装。DSH 的插件挂在 profile 上，三步。
 
-**1）放进插件目录**
+### 1. 放进插件目录
 
 ```bash
 git clone https://github.com/AkiraNyx/dsh-luminyx.git ~/.dsh/plugins/dsh-luminyx
 ```
 
-**2）在 profile 里登记** —— 编辑 `~/.dsh/profiles/[PROFILE]/package.json`
+### 2. 在 profile 里登记
+
+编辑 `~/.dsh/profiles/[PROFILE]/package.json`：
 
 ```jsonc
 {
@@ -43,36 +45,52 @@ git clone https://github.com/AkiraNyx/dsh-luminyx.git ~/.dsh/plugins/dsh-luminyx
 
 两处都要加，缺一不生效：`dependencies` 让 Node 能解析到这个包；`bundles` 让 profile 应用它的 `cordis.patch.yml` —— 那个文件只有一条 `insert`，作用是把宿主半插进插件表。包在那儿但没进 `bundles`，就只是躺在磁盘上。
 
-**3）装依赖并重启 DSH**
+### 3. 装依赖并重启 DSH
 
 ```bash
 cd ~/.dsh/profiles/[PROFILE] && pnpm install   # npm / yarn 同理
 ```
 
-**成功判据**：设置侧栏出现「人格设定」，并且
+宿主半的改动要重启；**改人格文件不用**。
+
+### 验证安装
+
+设置侧栏出现「人格设定」，并且
 
 ```bash
 curl http://127.0.0.1:[PORT]/persona/api/overview
 ```
 
-返回 JSON。`[PORT]` 是 DSH Web 实际监听的端口，启动日志里会打印，每次启动可能不同。宿主半的改动要重启；**改人格文件不用**。
+返回 JSON。`[PORT]` 是 DSH Web 实际监听的端口，启动日志里会打印，每次启动可能不同。
 
-**最小用法**
-
-1. 设置 → 人格设定 → 「新建」，填 id（目录名，`^[a-z0-9][a-z0-9_-]{0,63}$`）、显示名、默认称呼。
-2. 「人格正文」页签写这个人是谁，`Ctrl+S` / `⌘S` 保存，下一轮对话生效。
-3. 「长期记忆」页签手填，或者直接对模型说「记住……」，它自己调 `persona_remember`。
-4. 内置包 `example`（下拉里带 `· 内置`）是可照抄的模板；改它会先 fork 到用户目录，原文件保持干净。
-
-**自测**
+再跑一次自测，确认环境对得上：
 
 ```bash
-cd dsh-luminyx && npm test
+cd ~/.dsh/plugins/dsh-luminyx && npm test
 # 全部通过：87 通过，0 失败
 # 全部通过：22 通过，0 失败
 ```
 
 测试不碰真实数据：宿主用例把 `DSH_HOME` 指向临时目录，跑完即删。
+
+## 使用
+
+打开设置 → 人格设定，五个页签对应五件事：
+
+| 页签 | 用途 |
+| --- | --- |
+| 设定档案 | 包列表、切包、底部快照与回滚 |
+| 人格正文 | 按 `## ` 切块的卡片编辑器 |
+| 常驻事实 | 一行一条，文件头只读展示 |
+| 长期记忆 | 手填，或交给 `persona_remember` |
+| 注入设置 | 开关、段 order、长度上限、召回参数 |
+
+保存快捷键 `Ctrl+S` / `⌘S`，下一轮对话生效。
+
+1. 「新建」填 id（目录名，`^[a-z0-9][a-z0-9_-]{0,63}$`）、显示名、默认称呼。
+2. 「人格正文」写这个人是谁，「常驻事实」写称呼、约定、忌讳。
+3. 「长期记忆」手填，或者直接对模型说「记住……」，它自己调 `persona_remember`。
+4. 内置包 `example`（下拉里带 `· 内置`）是可照抄的模板；改它会先 fork 到用户目录，原文件保持干净。
 
 ## 人格包
 
@@ -157,6 +175,8 @@ flowchart LR
   U["设置页 client.js"] --> A["/persona/api/*"]
   A --> F
 ```
+
+两段用 `ctx.systemPrompt.section()` 注册：`persona:main` order 9100、`persona:facts` order 9120，落在工具清单（5000）之后、结构化输出（9900）之前。
 
 三个注入细节：
 
